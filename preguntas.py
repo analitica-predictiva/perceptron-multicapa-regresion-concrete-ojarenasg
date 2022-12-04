@@ -8,95 +8,163 @@ https://jdvelasq.github.io/courses/notebooks/sklearn_supervised_10_neural_networ
 
 """
 
-import sys
-
-import preguntas
+import pandas as pd
 
 
-def test_01():
+def pregunta_01():
     """
-    ---< Input/Output test case >----------------------------------------------------
-    Pregunta 01
-    pip3 install scikit-learn pandas numpy
-    python3 tests.py 01
+    Carga y separación de los datos en `X` `y`
     """
+    # Lea el archivo `concrete.csv` y asignelo al DataFrame `df` 
+    df = pd.read_csv('concrete.csv', sep=',')   
 
-    x_data, y_data = preguntas.pregunta_01()
+    # Asigne la columna `strength` a la variable `y`.
+    y = df['strength'].values  
 
-    assert x_data.shape == (1030, 8)
-    assert y_data.shape == (1030,)
-    assert "strength" not in x_data.columns
+    # Asigne una copia del dataframe `df` a la variable `X`.
+    X = df.copy()  
+
+    # Remueva la columna `strength` del DataFrame `X`.
+    X.drop(['strength'], axis = 1, inplace = True)  
+
+    # Retorne `X` y `y`
+    return X, y
 
 
-def test_02():
+def pregunta_02():
     """
-    ---< Input/Output test case >----------------------------------------------------
-    Pregunta 02
-    pip3 install scikit-learn pandas numpy
-    python3 tests.py 02
-    """
-
-    x_train, x_test, y_train, y_test = preguntas.pregunta_02()
-    assert x_train.shape == (772, 8)
-    assert x_test.shape == (258, 8)
-    assert y_train.sum().round(2) == 27681.52
-    assert y_test.sum().round(2) == 9210.98
-
-
-def test_03():
-    """
-    ---< Run command >-----------------------------------------------------------------
-    Pregunta 03
-    pip3 install scikit-learn pandas numpy
-    python3 tests.py 03
+    Preparación del dataset.
     """
 
-    pipeline = preguntas.pregunta_03()
-    assert pipeline.steps[0][0] == "minmaxscaler"
-    assert pipeline.steps[0][1].__class__.__name__ == "MinMaxScaler"
-    assert pipeline.steps[1][0] == "mlpregressor"
-    assert pipeline.steps[1][1].__class__.__name__ == "MLPRegressor"
+    # Importe train_test_split
+    from sklearn.model_selection import train_test_split
+
+    # Cargue los datos de ejemplo y asigne los resultados a `X` y `y`.
+    X, y = pregunta_01()
+
+    # Divida los datos de entrenamiento y prueba. La semilla del generador de números
+    # aleatorios es 12453. Use el 75% de los patrones para entrenamiento.
+    (  
+        x_train,  
+        x_test,  
+        y_train,  
+        y_test,  
+    ) = train_test_split(  
+        X,  
+        y,  
+        test_size = 0.25,  
+        random_state = 12453,  
+    )  
+
+    # Retorne `X_train`, `X_test`, `y_train` y `y_test`
+    return x_train, x_test, y_train, y_test
 
 
-def test_04():
+def pregunta_03():
     """
-    ---< Run command >--------------------------------------------------------------------
-    Pregunta 04
-    pip3 install scikit-learn pandas numpy
-    python3 tests.py 04
-    """
-
-    gridsearchcv = preguntas.pregunta_04()
-
-    assert gridsearchcv.__class__.__name__ == "GridSearchCV"
-    assert gridsearchcv.cv == 5
-    assert gridsearchcv.scoring == "r2"
-    assert gridsearchcv.return_train_score is False
-
-
-def test_05():
-    """
-    ---< Run command >--------------------------------------------------------------------
-    Pregunta 05
-    pip3 install scikit-learn pandas numpy
-    python3 tests.py 05
+    Construcción del pipeline
     """
 
-    mse_train, mse_test = preguntas.pregunta_05()
+    # Importe MLPRegressor
+    # Importe MinMaxScaler
+    # Importe Pipeline
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import MinMaxScaler  
+    from sklearn.pipeline import Pipeline
 
-    print(mse_train)
-    print(mse_test)
+    # Cree un pipeline que contenga un estimador MinMaxScaler y un estimador
+    # MLPRegressor
+    pipeline = Pipeline(
+        steps=[
+            (
+                "minmaxscaler",
+                MinMaxScaler(),  
+            ),
+            (
+                "mlpregressor",
+                MLPRegressor(),  
+            ),
+        ],
+    )
 
-    assert mse_train < 114.0
-    assert mse_test < 120.0
+    # Retorne el pipeline
+    return pipeline
 
 
-test = {
-    "01": test_01,
-    "02": test_02,
-    "03": test_03,
-    "04": test_04,
-    "05": test_05,
-}[sys.argv[1]]
+def pregunta_04():
+    """
+    Creación de la malla de búsqueda
+    """
 
-test()
+    # Importe GridSearchCV
+    from sklearn.model_selection import GridSearchCV
+
+    # Cree una malla de búsqueda para el objecto GridSearchCV
+    # con los siguientes parámetros de búesqueda:
+    #   * De 1 a 8 neuronas en la capa oculta
+    #   * Activación con la función `relu`.
+    #   * Tasa de aprendizaje adaptativa
+    #   * Momentun con valores de 0.7, 0.8 y 0.9
+    #   * Tasa de aprendijzaje inicial de 0.01, 0.05, 0.1
+    #   * Un máximo de 5000 iteraciones
+    #   * Use parada temprana
+
+    param_grid = {
+        'mlpregressor__hidden_layer_sizes': [1, 2, 3, 4, 5, 6, 7, 8],
+        'mlpregressor__activation': ['relu'],
+        'mlpregressor__learning_rate': ['adaptive'],
+        'mlpregressor__momentum': [0.7, 0.8, 0.9],
+        'mlpregressor__learning_rate_init': [0.01, 0.05, 0.1],
+        'mlpregressor__max_iter': [5000],
+        'mlpregressor__early_stopping': [True],
+    }
+
+    estimator = pregunta_03()
+
+    # Especifique un objeto GridSearchCV con el pipeline y la malla de búsqueda,
+    # y los siguientes parámetros adicionales:
+    #  * Validación cruzada con 5 particiones
+    #  * Compare modelos usando r^2
+    gridsearchcv = GridSearchCV(
+        estimator = estimator,
+        param_grid = param_grid,
+        cv = 5,  
+        scoring = 'r2'  
+    )
+
+    return gridsearchcv
+
+
+def pregunta_05():
+    """
+    Evalue el modelo obtenido.
+    """
+
+    # Importe mean_squared_error
+    from sklearn.metrics import mean_squared_error
+
+    # Cargue las variables.
+    x_train, x_test, y_train, y_test = pregunta_02()
+
+    # Obtenga el objeto GridSearchCV
+    estimator = pregunta_04()
+
+    # Entrene el estimador
+    estimator.fit(x_train, y_train)  #
+
+    # Pronostique para las muestras de entrenamiento y validacion
+    y_trian_pred = estimator.predict(x_train)  
+    y_test_pred = estimator.predict(x_test)  
+
+    # Calcule el error cuadrático medio de las muestras
+    mse_train = mean_squared_error(  
+        y_train,  
+        y_trian_pred,  
+    )
+    mse_test = mean_squared_error(  
+        y_test,  
+        y_test_pred,  
+    )
+
+    # Retorne el mse de entrenamiento y prueba
+    return mse_train, mse_test
